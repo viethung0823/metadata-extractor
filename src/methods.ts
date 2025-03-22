@@ -27,6 +27,7 @@ import { existsSync, writeFileSync } from 'fs';
 import Worker from './workers/metadata.worker';
 import { getAllExceptMd } from './utils';
 import download from 'image-downloader';
+import { exec } from 'child_process';
 
 
 function getAll(allFiles: TAbstractFile[]) {
@@ -288,7 +289,9 @@ export default class Methods {
 		worker.onmessage = (event: any) => {
 			metadataCache = event.data;
 			writeFileSync(path, JSON.stringify(metadataCache, null, 2));
-			console.log(`wrote the ${fileName} JSON file`);
+			const msg = `wrote the ${fileName} JSON file`
+			console.log(msg);
+			new Notice(msg);
 			// writeFileSync(path + 'cache.json', JSON.stringify(Object.entries(this.app.vault.getMarkdownFiles())))
 			worker.terminate();
 		};
@@ -413,4 +416,23 @@ function calculateLinks(
 		}
 	}
 	return metaObj;
+}
+
+export  function runShellScript(scriptPath: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+			exec(`bash "${scriptPath}"`, (error, stdout, stderr) => {
+					if (error) {
+							console.error(`Error executing script: ${error.message}`);
+							reject(error);
+							return;
+					}
+
+					if (stderr) {
+							console.error(`Script stderr: ${stderr}`);
+					}
+
+					console.log(`Script stdout: ${stdout}`);
+					resolve();
+			});
+	});
 }
