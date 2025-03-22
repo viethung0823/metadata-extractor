@@ -16,15 +16,18 @@ import {
 } from 'obsidian';
 import type {
 	backlinks,
-	extendedFrontMatterCache, file,
+	extendedFrontMatterCache,
+	file,
 	folder,
 	links,
-	Metadata
+	Metadata,
 } from './interfaces';
-import { writeFileSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 //@ts-expect-error, there is no export, but this is how the esbuild inline plugin works
 import Worker from './workers/metadata.worker';
 import { getAllExceptMd } from './utils';
+import download from 'image-downloader';
+
 
 function getAll(allFiles: TAbstractFile[]) {
 	const folders: folder[] = [];
@@ -130,30 +133,92 @@ export default class Methods {
 		}
 	}
 
-	createCleanFrontmatter(
-		frontmatter: FrontMatterCache
-	): extendedFrontMatterCache {
-		const newFrontmatter = Object.assign({}, frontmatter);
-		if (newFrontmatter.aliases) {
-			delete newFrontmatter.aliases;
-		}
-		if (newFrontmatter.tags) {
-			delete newFrontmatter.tags;
-		}
-		if (newFrontmatter.image) {
-			const imageRegex = /\[\[([^\]]+)\]\]/;
+	replaceLocalImagePath(
+		image: string,
+		imageRegex: RegExp,
+		homeDir: string
+	): string {
+		return image.replace(imageRegex, (_, p1) => {
+			return `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${p1}`;
+		});
+	}
 
-			const homeDir = process.env.HOME || process.env.USERPROFILE;
-			newFrontmatter.image = newFrontmatter.image.replace(imageRegex, (match, p1) => {
-					return `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${p1}`;
-			});
+	handleRemoteImage(
+		imageUrl: string,
+		displayName: string,
+		homeDir: string
+	): string {
+		const localImagePath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${displayName}.jpg`;
+		const downloadPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/Auto-Import/ObsidianAttachments/${displayName}.jpg`;
+		if (!existsSync(localImagePath)) {
+			const options = {
+				url: imageUrl,
+				dest: downloadPath,
+			};
+
+			download.image(options)
+				.then(({ filename }) => {
+					console.log('Saved to', filename);
+				})
+				.catch((err) => console.error(err));
+		}
+
+		return localImagePath;
+	}
+
+	processImageField(
+		image: string,
+		displayName: string,
+		homeDir: string
+	): string {
+		const imageRegex = /\[\[([^\]]+)\]\]/;
+
+		if (imageRegex.test(image)) {
+			return this.replaceLocalImagePath(image, imageRegex, homeDir);
+		}
+
+		if (/^https?:\/\//.test(image)) {
+			return this.handleRemoteImage(image, displayName, homeDir);
+		}
+
+		return image;
+	}
+
+	cleanAliases(frontmatter: FrontMatterCache): void {
+		if (frontmatter.aliases) {
+			delete frontmatter.aliases;
+		}
+	}
+
+	cleanTags(frontmatter: FrontMatterCache): void {
+		if (frontmatter.tags) {
+			delete frontmatter.tags;
+		}
+	}
+
+	createCleanFrontmatter(
+		frontmatter: FrontMatterCache,
+		displayName: string
+	): extendedFrontMatterCache {
+		const homeDir = process.env.HOME || (process.env.USERPROFILE as string);
+		const newFrontmatter = { ...frontmatter };
+
+		this.cleanAliases(newFrontmatter);
+		this.cleanTags(newFrontmatter);
+
+		if (newFrontmatter.image) {
+			newFrontmatter.image = this.processImageField(
+				newFrontmatter.image,
+				displayName,
+				homeDir
+			);
 		}
 		return newFrontmatter as extendedFrontMatterCache;
 	}
 
 	writeCacheToJSON(pattern: RegExp, fileName: string) {
 		// only set the path to the plugin folder if no other path is specified
-		const	path = this.getAbsolutePath (fileName) ;
+		const path = this.getAbsolutePath(fileName);
 		let metadataCache: Metadata[] = [];
 
 		for (const tfile of this.app.vault.getMarkdownFiles()) {
@@ -161,7 +226,7 @@ export default class Methods {
 			const relativeFilePath: string = tfile.path;
 			if (!pattern.test(relativeFilePath)) {
 				continue;
-		}
+			}
 			let currentCache!: CachedMetadata;
 			const cache = this.app.metadataCache.getFileCache(tfile);
 			if (cache) {
@@ -183,13 +248,16 @@ export default class Methods {
 			if (currentTags) {
 				if (currentTags.length > 0) {
 					// metaObj.tags = currentTags;
-					metaObj.stringTags = currentTags.map(tag => this.extractLastWord(tag)).join(' ');
+					metaObj.stringTags = currentTags
+						.map((tag) => this.extractLastWord(tag))
+						.join(' ');
 				}
 			}
 
 			if (currentCache.frontmatter) {
 				metaObj.frontmatter = this.createCleanFrontmatter(
-					currentCache.frontmatter
+					currentCache.frontmatter,
+					displayName
 				);
 				//@ts-expect-error, could return null so can't be assigned to current aliases,
 				// check for null is done later
@@ -220,9 +288,7 @@ export default class Methods {
 		worker.onmessage = (event: any) => {
 			metadataCache = event.data;
 			writeFileSync(path, JSON.stringify(metadataCache, null, 2));
-			console.log(
-				`wrote the ${fileName} JSON file`
-			);
+			console.log(`wrote the ${fileName} JSON file`);
 			// writeFileSync(path + 'cache.json', JSON.stringify(Object.entries(this.app.vault.getMarkdownFiles())))
 			worker.terminate();
 		};
@@ -230,7 +296,9 @@ export default class Methods {
 
 	getFilepathURI(filePath: string): string {
 		const encodedFilePath = encodeURIComponent(filePath);
-		return `obsidian://adv-uri?vault=${encodeURIComponent("Vault")}&filepath=${encodedFilePath}`;
+		return `obsidian://adv-uri?vault=${encodeURIComponent(
+			'Vault'
+		)}&filepath=${encodedFilePath}`;
 	}
 
 	extractLastWord(currentTags: string) {

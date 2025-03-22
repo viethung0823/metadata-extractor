@@ -13,7 +13,7 @@ export default class BridgePlugin extends Plugin {
 			id: 'update_connections',
 			name: 'Update Connections',
 			callback: () => {
-				const connectionPatter = /^Modules\/40 Topic\/43\.00 Humanities\/43\.04 Connections/;
+				const connectionPatter = /^(Modules\/40 Topic\/43\.00 Humanities\/43\.04 Connections|Modules\/40 Topic\/46\.00 Media\/46\.01 Music\/Artist\/.*)/;
 				this.methods.writeCacheToJSON(connectionPatter, "connections.json");
 			},
 		});
