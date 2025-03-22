@@ -16,14 +16,10 @@ import {
 } from 'obsidian';
 import type {
 	backlinks,
-	extendedFrontMatterCache,
-	extendedMetadataCache,
-	file,
+	extendedFrontMatterCache, file,
 	folder,
 	links,
-	Metadata,
-	tagCache,
-	tagNumber,
+	Metadata
 } from './interfaces';
 import { writeFileSync } from 'fs';
 //@ts-expect-error, there is no export, but this is how the esbuild inline plugin works
@@ -66,7 +62,7 @@ export default class Methods {
 			throw new Error('Cannot determine base path.');
 		}
 		// relative path
-		const relativePath = `${this.app.vault.configDir}/plugins/metadata-extractor/${fileName}`;
+		const relativePath = `${this.app.vault.configDir}/plugins/metadata-extractor-mine/${fileName}`;
 		// absolute path
 		return `${basePath}/${relativePath}`;
 	}
@@ -144,145 +140,50 @@ export default class Methods {
 		if (newFrontmatter.tags) {
 			delete newFrontmatter.tags;
 		}
+		if (newFrontmatter.image) {
+			const imageRegex = /\[\[([^\]]+)\]\]/;
+
+			const homeDir = process.env.HOME || process.env.USERPROFILE;
+			newFrontmatter.image = newFrontmatter.image.replace(imageRegex, (match, p1) => {
+					return `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${p1}`;
+			});
+		}
 		return newFrontmatter as extendedFrontMatterCache;
 	}
 
-	/**
-	 *
-	 * @param fileName - the filename for the file
-	 * If another path is set (tagPath) in the settings, then it will use that path
-	 */
-	writeTagsToJSON(fileName: string): void {
-		// if there are no tags in the vault, exit
-		const tags = (
-			this.app.metadataCache as extendedMetadataCache
-		).getTags();
-		if (Object.keys(tags).length === 0) {
-			const error = 'There are no tags in your vault.';
-			if (this.plugin.settings.consoleLog) {
-				console.log(error);
-				return;
-			} else {
-				return;
-			}
-		}
-
-		let path = this.plugin.settings.tagPath;
+	writeCacheToJSON(pattern: RegExp, fileName: string) {
 		// only set the path to the plugin folder if no other path is specified
-		if (!this.plugin.settings.tagPath) {
-			path = this.getAbsolutePath(fileName);
-		}
-
-		const tagsCache: tagCache[] = [];
-
-		for (const tfile of this.app.vault.getMarkdownFiles()) {
-			let currentCache!: CachedMetadata;
-			const cache = this.app.metadataCache.getFileCache(tfile);
-			if (cache) {
-				currentCache = cache;
-			}
-			const relativePath: string = tfile.path;
-			//let displayName: string = this.app.metadataCache.fileToLinktext(tfile, tfile.path, false);
-			const currentTags: string[] = this.getUniqueTags(currentCache);
-			if (currentTags.length !== 0) {
-				tagsCache.push({
-					name: relativePath,
-					tags: currentTags,
-				});
-			}
-		}
-
-		// own version of this.app.metadataCache.getTags()
-		// it doesn't include subtags if there is only one tag/subtag/subsubtag
-		// (Obsidian would return tag, tag/subtag, tag/subtag/subtag for .getTags())
-		const allTagsFromCache: string[][] = tagsCache.map((element) => {
-			return element.tags;
-		});
-		const reducedAllTagsFromCache = allTagsFromCache.reduce(
-			(acc, tagArray) => {
-				return acc.concat(tagArray.map((tag) => tag.toLowerCase()));
-			}
-		);
-		const uniqueAllTagsFromCache = Array.from(
-			new Set(reducedAllTagsFromCache)
-		);
-
-		//private method
-		const numberOfNotesWithTag = (
-			this.app.metadataCache as extendedMetadataCache
-		).getTags();
-		// Obsidian doesn't consistently lower case the tags (it's a feature, it shows the most used version)
-		// used to get a tag count; cleaning up is necessary for matching to own cleaned up version
-		const tagsWithCount: tagNumber = {};
-		for (const [key, value] of Object.entries(numberOfNotesWithTag)) {
-			const newKey: string = key.slice(1).toLowerCase();
-			tagsWithCount[newKey] = value as number;
-		}
-
-		// what will be written to disk
-		const tagToFile: {
-			tag: string;
-			tagCount: number;
-			relativePaths: string[] | string;
-		}[] = [];
-		for (const tag of uniqueAllTagsFromCache) {
-			const fileNameArray: string[] = [];
-			// see which files contain the current tag
-			for (const file of tagsCache) {
-				if (file.tags.contains(tag)) {
-					fileNameArray.push(file.name);
-				}
-			}
-			const numberOfNotes: number = tagsWithCount[tag];
-			tagToFile.push({
-				tag: tag,
-				tagCount: numberOfNotes,
-				relativePaths: fileNameArray,
-			});
-		}
-
-		writeFileSync(path, JSON.stringify(tagToFile, null, 2));
-		if (this.plugin.settings.consoleLog) {
-			console.log(
-				'Metadata Extractor plugin: wrote the tagToFile JSON file'
-			);
-		}
-	}
-
-	writeCacheToJSON(fileName: string) {
-		let path = this.plugin.settings.metadataPath;
-		// only set the path to the plugin folder if no other path is specified
-		if (!this.plugin.settings.metadataPath) {
-			path = this.getAbsolutePath(fileName);
-		}
+		const	path = this.getAbsolutePath (fileName) ;
 		let metadataCache: Metadata[] = [];
 
 		for (const tfile of this.app.vault.getMarkdownFiles()) {
 			const displayName = tfile.basename;
 			const relativeFilePath: string = tfile.path;
+			if (!pattern.test(relativeFilePath)) {
+				continue;
+		}
 			let currentCache!: CachedMetadata;
 			const cache = this.app.metadataCache.getFileCache(tfile);
 			if (cache) {
 				currentCache = cache;
 			} else {
-				if (this.plugin.settings.consoleLog) {
-					console.log(`No cache for file: ${tfile.path}`);
-				}
+				console.log(`No cache for file: ${tfile.path}`);
 				continue;
 			}
 			let currentAliases: string[];
-			const currentHeadings: { heading: string; level: number }[] = [];
 
 			//@ts-expect-error, object needs to be initialized, but values will only be known later
 			const metaObj: Metadata = {};
 
 			metaObj.fileName = displayName;
 			metaObj.relativePath = relativeFilePath;
+			metaObj.uri = this.getFilepathURI(relativeFilePath);
 
 			const currentTags = this.getUniqueTags(currentCache);
 			if (currentTags) {
 				if (currentTags.length > 0) {
-					metaObj.tags = currentTags;
+					// metaObj.tags = currentTags;
+					metaObj.stringTags = currentTags.map(tag => this.extractLastWord(tag)).join(' ');
 				}
 			}
 
@@ -302,27 +203,6 @@ export default class Methods {
 				}
 			}
 
-			if (currentCache.headings) {
-				currentCache.headings.forEach((headings) => {
-					currentHeadings.push({
-						heading: headings.heading,
-						level: headings.level,
-					});
-				});
-				metaObj.headings = currentHeadings;
-			}
-
-			const linkMetaObj = calculateLinks(
-				currentCache,
-				metaObj,
-				relativeFilePath,
-				displayName,
-				this.app,
-				tfile
-			);
-
-			Object.assign(metaObj, linkMetaObj);
-
 			if (Object.keys(metaObj).length > 0) {
 				metadataCache.push(metaObj);
 			}
@@ -340,73 +220,21 @@ export default class Methods {
 		worker.onmessage = (event: any) => {
 			metadataCache = event.data;
 			writeFileSync(path, JSON.stringify(metadataCache, null, 2));
-			if (this.plugin.settings.consoleLog) {
-				console.log(
-					'Metadata Extractor plugin: wrote the metadata JSON file'
-				);
-			}
+			console.log(
+				`wrote the ${fileName} JSON file`
+			);
 			// writeFileSync(path + 'cache.json', JSON.stringify(Object.entries(this.app.vault.getMarkdownFiles())))
 			worker.terminate();
 		};
 	}
 
-	setWritingSchedule(
-		tagFileName: string,
-		metadataFileName: string,
-		allExceptMdFileName: string,
-		canvasFileName: string
-	) {
-		if (this.plugin.settings.writingFrequency !== '0') {
-			const intervalInMinutes = parseInt(
-				this.plugin.settings.writingFrequency
-			);
-			const milliseconds = intervalInMinutes * 60000;
+	getFilepathURI(filePath: string): string {
+		const encodedFilePath = encodeURIComponent(filePath);
+		return `obsidian://adv-uri?vault=${encodeURIComponent("Vault")}&filepath=${encodedFilePath}`;
+	}
 
-			// schedule for tagsToJSON
-			window.clearInterval(this.plugin.intervalId1);
-			this.plugin.intervalId1 = undefined;
-			this.plugin.intervalId1 = window.setInterval(
-				() => this.writeTagsToJSON(tagFileName),
-				milliseconds
-			);
-			// API function to cancel interval when plugin unloads
-			this.plugin.registerInterval(this.plugin.intervalId1);
-
-			// schedule for metadataCache to JSON
-			window.clearInterval(this.plugin.intervalId2);
-			this.plugin.intervalId2 = undefined;
-			this.plugin.intervalId2 = window.setInterval(
-				() => this.writeCacheToJSON(metadataFileName),
-				milliseconds
-			);
-			// API function to cancel interval when plugin unloads
-			this.plugin.registerInterval(this.plugin.intervalId2);
-
-			// schedule for allExceptMd to JSON
-			window.clearInterval(this.plugin.intervalId3);
-			this.plugin.intervalId3 = undefined;
-			this.plugin.intervalId3 = window.setInterval(
-				() => this.writeAllExceptMd(allExceptMdFileName),
-				milliseconds
-			);
-			// API function to cancel interval when plugin unloads
-			this.plugin.registerInterval(this.plugin.intervalId3);
-
-			// schedule for canvas to JSON
-			window.clearInterval(this.plugin.intervalId4);
-			this.plugin.intervalId4 = undefined;
-			this.plugin.intervalId4 = window.setInterval(
-				() => this.writeCanvases(canvasFileName),
-				milliseconds
-			);
-			// API function to cancel interval when plugin unloads
-			this.plugin.registerInterval(this.plugin.intervalId4);
-		} else if (this.plugin.settings.writingFrequency === '0') {
-			window.clearInterval(this.plugin.intervalId1);
-			window.clearInterval(this.plugin.intervalId2);
-			window.clearInterval(this.plugin.intervalId3);
-			window.clearInterval(this.plugin.intervalId4);
-		}
+	extractLastWord(currentTags: string) {
+		return currentTags.replace(/^.*\/([^\/]+)$/, '$1');
 	}
 }
 

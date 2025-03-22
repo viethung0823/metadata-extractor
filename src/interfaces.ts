@@ -20,12 +20,14 @@ export interface BridgeSettings {
 export interface Metadata {
 	fileName: string;
 	relativePath: string;
-	tags?: string[];
+	// tags?: string[];
+	stringTags?: string;
 	headings?: { heading: string; level: number }[];
 	aliases?: string[];
 	links?: links[];
 	backlinks?: backlinks[];
 	frontmatter?: extendedFrontMatterCache;
+	uri: string;
 }
 
 /**

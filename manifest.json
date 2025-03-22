@@ -1,9 +1,9 @@
 {
-	"id": "metadata-extractor",
-	"name": "Metadata Extractor",
+	"id": "metadata-extractor-mine",
+	"name": "Metadata Extractor Mine",
 	"version": "1.1.0",
 	"minAppVersion": "1.1.7",
-	"description": "Metadata export on a schedule for integration with third-party apps like launchers.",
+	"description": "My Own Purpose",
 	"author": "kometenstaub",
 	"authorUrl": "https://github.com/kometenstaub",
 	"isDesktopOnly": true
