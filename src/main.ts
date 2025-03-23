@@ -13,7 +13,7 @@ export default class BridgePlugin extends Plugin {
 			id: 'update_connections',
 			name: 'Update Connections',
 			callback:  () => {
-				const connectionPatter = /^(Modules\/40 Topic\/43\.00 Humanities\/43\.04 Connections|Modules\/40 Topic\/46\.00 Media\/46\.01 Music\/Artist\/.*)/;
+				const connectionPatter = /^(Modules\/40 Topic\/43\.00 Humanities\/43\.04 Connections|Modules\/40 Topic\/46\.00 Media\/46\.01 Music\/Artist\/.*|Data\/md\/YouTube\/YouTubeSubscriptionData\/.*)/;
 				this.methods.writeCacheToJSON(connectionPatter, "connections.json");
 				const homeDir = process.env.HOME || (process.env.USERPROFILE as string);
 				const scriptPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Alfred/Scripts/Eagle/create_eagle_obsidian_attachments_symlinks.sh`;

@@ -29,7 +29,6 @@ import { getAllExceptMd } from './utils';
 import download from 'image-downloader';
 import { exec } from 'child_process';
 
-
 function getAll(allFiles: TAbstractFile[]) {
 	const folders: folder[] = [];
 	const files: file[] = [];
@@ -134,10 +133,7 @@ export default class Methods {
 		}
 	}
 
-	replaceLocalImagePath(
-		image: string,
-		imageRegex: RegExp,
-	): string {
+	replaceLocalImagePath(image: string, imageRegex: RegExp): string {
 		return image.replace(imageRegex, (_, p1) => {
 			return `Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${p1}`;
 		});
@@ -150,13 +146,14 @@ export default class Methods {
 	): string {
 		const localImagePath = `Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${displayName}.jpg`;
 		const downloadPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/Auto-Import/ObsidianAttachments/${displayName}.jpg`;
-		if (!existsSync(localImagePath)) {
+		if (!existsSync(`${homeDir}/${localImagePath}`)) {
 			const options = {
 				url: imageUrl,
 				dest: downloadPath,
 			};
 
-			download.image(options)
+			download
+				.image(options)
 				.then(({ filename }) => {
 					console.log('Saved to', filename);
 				})
@@ -205,10 +202,10 @@ export default class Methods {
 
 		this.cleanAliases(newFrontmatter);
 		this.cleanTags(newFrontmatter);
-
-		if (newFrontmatter.image) {
+		const frontMatterImageField = newFrontmatter.image || newFrontmatter.youtubeChannelThumbnail;
+		if (frontMatterImageField) {
 			newFrontmatter.image = this.processImageField(
-				newFrontmatter.image,
+				frontMatterImageField,
 				displayName,
 				homeDir
 			);
@@ -218,13 +215,32 @@ export default class Methods {
 
 	writeCacheToJSON(pattern: RegExp, fileName: string) {
 		const homeDir = process.env.HOME || (process.env.USERPROFILE as string);
-		const path = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/json/Obsidian/${fileName}`
+		const path = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/json/Obsidian/${fileName}`;
 		let metadataCache: Metadata[] = [];
 
 		for (const tfile of this.app.vault.getMarkdownFiles()) {
 			const displayName = tfile.basename;
 			const relativeFilePath: string = tfile.path;
-			if (!pattern.test(relativeFilePath)) {
+			if (
+				/^Data\/md\/YouTube\/YouTubeSubscriptionData\/.*/.test(
+					relativeFilePath
+				)
+			) {
+				const subscriptionFile =
+					this.app.vault.getFileByPath(relativeFilePath);
+				if (!(subscriptionFile instanceof TFile)) {
+					console.error(`File not found or not a TFile: ${path}`);
+					continue;
+				}
+				const frontmatter =
+					this.app.metadataCache.getFileCache(subscriptionFile);
+				const isSyncPeople = frontmatter?.frontmatter?.tags?.includes(
+					'connection/people/sync'
+				);
+				if (!isSyncPeople) {
+					continue;
+				}
+			} else if (!pattern.test(relativeFilePath)) {
 				continue;
 			}
 			let currentCache!: CachedMetadata;
@@ -288,7 +304,7 @@ export default class Methods {
 		worker.onmessage = (event: any) => {
 			metadataCache = event.data;
 			writeFileSync(path, JSON.stringify(metadataCache, null, 2));
-			const msg = `wrote the ${fileName} JSON file`
+			const msg = `wrote the ${fileName} JSON file`;
 			console.log(msg);
 			new Notice(msg);
 			// writeFileSync(path + 'cache.json', JSON.stringify(Object.entries(this.app.vault.getMarkdownFiles())))
@@ -417,21 +433,21 @@ function calculateLinks(
 	return metaObj;
 }
 
-export  function runShellScript(scriptPath: string): Promise<void> {
+export function runShellScript(scriptPath: string): Promise<void> {
 	return new Promise((resolve, reject) => {
-			exec(`bash "${scriptPath}"`, (error, stdout, stderr) => {
-					if (error) {
-							console.error(`Error executing script: ${error.message}`);
-							reject(error);
-							return;
-					}
+		exec(`bash "${scriptPath}"`, (error, stdout, stderr) => {
+			if (error) {
+				console.error(`Error executing script: ${error.message}`);
+				reject(error);
+				return;
+			}
 
-					if (stderr) {
-							console.error(`Script stderr: ${stderr}`);
-					}
+			if (stderr) {
+				console.error(`Script stderr: ${stderr}`);
+			}
 
-					console.log(`Script stdout: ${stdout}`);
-					resolve();
-			});
+			console.log(`Script stdout: ${stdout}`);
+			resolve();
+		});
 	});
 }
