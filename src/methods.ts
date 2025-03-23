@@ -137,10 +137,9 @@ export default class Methods {
 	replaceLocalImagePath(
 		image: string,
 		imageRegex: RegExp,
-		homeDir: string
 	): string {
 		return image.replace(imageRegex, (_, p1) => {
-			return `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${p1}`;
+			return `Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${p1}`;
 		});
 	}
 
@@ -149,7 +148,7 @@ export default class Methods {
 		displayName: string,
 		homeDir: string
 	): string {
-		const localImagePath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${displayName}.jpg`;
+		const localImagePath = `Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${displayName}.jpg`;
 		const downloadPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/Auto-Import/ObsidianAttachments/${displayName}.jpg`;
 		if (!existsSync(localImagePath)) {
 			const options = {
@@ -175,7 +174,7 @@ export default class Methods {
 		const imageRegex = /\[\[([^\]]+)\]\]/;
 
 		if (imageRegex.test(image)) {
-			return this.replaceLocalImagePath(image, imageRegex, homeDir);
+			return this.replaceLocalImagePath(image, imageRegex);
 		}
 
 		if (/^https?:\/\//.test(image)) {
@@ -218,8 +217,8 @@ export default class Methods {
 	}
 
 	writeCacheToJSON(pattern: RegExp, fileName: string) {
-		// only set the path to the plugin folder if no other path is specified
-		const path = this.getAbsolutePath(fileName);
+		const homeDir = process.env.HOME || (process.env.USERPROFILE as string);
+		const path = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/json/Obsidian/${fileName}`
 		let metadataCache: Metadata[] = [];
 
 		for (const tfile of this.app.vault.getMarkdownFiles()) {
