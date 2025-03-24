@@ -1,6 +1,6 @@
-import { Notice, Plugin } from 'obsidian';
+import { Plugin } from 'obsidian';
 
-import Methods, { executeEagleScript, runShellScript } from './methods';
+import Methods, { executeEagleScript } from './methods';
 import type { BridgeSettings } from './interfaces';
 import { console } from 'node:inspector';
 
@@ -13,7 +13,7 @@ export default class BridgePlugin extends Plugin {
 			id: 'update_connections',
 			name: 'Update Connections',
 			callback:  () => {
-				const connectionPattern = /^(Modules\/40 Topic\/43\.00 Humanities\/43\.04 Connections|Modules\/40 Topic\/46\.00 Media\/46\.01 Music\/Artist\/.*|Data\/md\/YouTube\/YouTubeSubscriptionData\/.*)/;
+				const connectionPattern = /^(Modules\/40 Topic\/43\.00 Humanities\/43\.04 Connections|Modules\/40 Topic\/46\.00 Media\/46\.01 Music\/Artist\/.*|Data\/md\/YouTube\/YouTubeSubscriptionData\/.*|Data\/md\/GitHub\/User\/.*)/;
 				this.methods.writeCacheToJSON(connectionPattern, "connections.json");
 				executeEagleScript();
 			}

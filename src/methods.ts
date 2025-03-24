@@ -224,7 +224,7 @@ export default class Methods {
 			const relativeFilePath: string = tfile.path;
 			if (pattern.test(relativeFilePath)) {
 				if (
-					/^Data\/md\/YouTube\/YouTubeSubscriptionData\/.*/.test(
+					/^(Data\/md\/YouTube\/YouTubeSubscriptionData\/.*|Data\/md\/GitHub\/User\/.*)/.test(
 						relativeFilePath
 					)
 				) {
