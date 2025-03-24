@@ -202,7 +202,8 @@ export default class Methods {
 
 		this.cleanAliases(newFrontmatter);
 		this.cleanTags(newFrontmatter);
-		const frontMatterImageField = newFrontmatter.image || newFrontmatter.youtubeChannelThumbnail;
+		const frontMatterImageField =
+			newFrontmatter.image || newFrontmatter.youtubeChannelThumbnail;
 		if (frontMatterImageField) {
 			newFrontmatter.image = this.processImageField(
 				frontMatterImageField,
@@ -221,26 +222,28 @@ export default class Methods {
 		for (const tfile of this.app.vault.getMarkdownFiles()) {
 			const displayName = tfile.basename;
 			const relativeFilePath: string = tfile.path;
-			if (
-				/^Data\/md\/YouTube\/YouTubeSubscriptionData\/.*/.test(
-					relativeFilePath
-				)
-			) {
-				const subscriptionFile =
-					this.app.vault.getFileByPath(relativeFilePath);
-				if (!(subscriptionFile instanceof TFile)) {
-					console.error(`File not found or not a TFile: ${path}`);
-					continue;
+			if (pattern.test(relativeFilePath)) {
+				if (
+					/^Data\/md\/YouTube\/YouTubeSubscriptionData\/.*/.test(
+						relativeFilePath
+					)
+				) {
+					const subscriptionFile =
+						this.app.vault.getFileByPath(relativeFilePath);
+					if (!(subscriptionFile instanceof TFile)) {
+						console.error(`File not found or not a TFile: ${path}`);
+						continue;
+					}
+					const frontmatter =
+						this.app.metadataCache.getFileCache(subscriptionFile);
+					const isSyncPeople = frontmatter?.frontmatter?.tags?.includes(
+						'connection/people/sync'
+					);
+					if (!isSyncPeople) {
+						continue;
+					}
 				}
-				const frontmatter =
-					this.app.metadataCache.getFileCache(subscriptionFile);
-				const isSyncPeople = frontmatter?.frontmatter?.tags?.includes(
-					'connection/people/sync'
-				);
-				if (!isSyncPeople) {
-					continue;
-				}
-			} else if (!pattern.test(relativeFilePath)) {
+			} else {
 				continue;
 			}
 			let currentCache!: CachedMetadata;
@@ -450,4 +453,19 @@ export function runShellScript(scriptPath: string): Promise<void> {
 			resolve();
 		});
 	});
+}
+
+export function executeEagleScript() {
+	const homeDir = process.env.HOME || (process.env.USERPROFILE as string);
+	const scriptPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Alfred/Scripts/Eagle/create_eagle_obsidian_attachments_symlinks.sh`;
+	setTimeout(async () => {
+		try {
+			await runShellScript(scriptPath);
+			const msg = `Shell script executed successfully`;
+			console.log(msg);
+			new Notice(msg);
+		} catch (error) {
+			console.error('Error executing shell script:', error);
+		}
+	}, 3000);
 }
