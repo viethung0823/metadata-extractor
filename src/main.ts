@@ -27,6 +27,15 @@ export default class BridgePlugin extends Plugin {
 				executeEagleScript();
 			}
 		});
+		this.addCommand({
+			id: 'update_resources',
+			name: 'Update Resources',
+			callback:  () => {
+				const resourcesPattern = /^Modules\/00 Tech\/00\.00 Resource\/.*/;
+				this.methods.writeCacheToJSON(resourcesPattern, "resources.json");
+				executeEagleScript();
+			}
+		});
 	}
 
 	onunload() {

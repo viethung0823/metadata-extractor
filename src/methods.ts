@@ -144,9 +144,13 @@ export default class Methods {
 		displayName: string,
 		homeDir: string
 	): string {
-		const localImagePath = `Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${displayName}.jpg`;
+		const localImagePath = `Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${displayName}`;
 		const downloadPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/Auto-Import/ObsidianAttachments/${displayName}.jpg`;
-		if (!existsSync(`${homeDir}/${localImagePath}`)) {
+		if (existsSync(`${homeDir}/${localImagePath}.png`)) {
+			return `${localImagePath}.png`;
+		} else if (existsSync(`${homeDir}/${localImagePath}.jpg`)) {
+			return `${localImagePath}.jpg`;
+		} else {
 			const options = {
 				url: imageUrl,
 				dest: downloadPath,
@@ -156,11 +160,12 @@ export default class Methods {
 				.image(options)
 				.then(({ filename }) => {
 					console.log('Saved to', filename);
+					return filename;
 				})
 				.catch((err) => console.error(err));
 		}
 
-		return localImagePath;
+		return '';
 	}
 
 	processImageField(
@@ -236,9 +241,10 @@ export default class Methods {
 					}
 					const frontmatter =
 						this.app.metadataCache.getFileCache(subscriptionFile);
-					const isSyncPeople = frontmatter?.frontmatter?.tags?.includes(
-						'connection/people/sync'
-					);
+					const isSyncPeople =
+						frontmatter?.frontmatter?.tags?.includes(
+							'connection/people/sync'
+						);
 					if (!isSyncPeople) {
 						continue;
 					}
