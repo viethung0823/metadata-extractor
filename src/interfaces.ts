@@ -28,6 +28,7 @@ export interface Metadata {
 	backlinks?: backlinks[];
 	frontmatter?: extendedFrontMatterCache;
 	uri: string;
+	resolvedLinks?: backlinks[]
 }
 
 /**

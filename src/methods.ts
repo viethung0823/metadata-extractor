@@ -22,6 +22,7 @@ import type {
 	links,
 	Metadata,
 } from './interfaces';
+import { parse } from "path";
 import { existsSync, writeFileSync } from 'fs';
 //@ts-expect-error, there is no export, but this is how the esbuild inline plugin works
 import Worker from './workers/metadata.worker';
@@ -268,6 +269,7 @@ export default class Methods {
 			metaObj.fileName = displayName;
 			metaObj.relativePath = relativeFilePath;
 			metaObj.uri = this.getFilepathURI(relativeFilePath);
+			metaObj.resolvedLinks = this.getResolvedLinks(relativeFilePath)
 
 			const currentTags = this.getUniqueTags(currentCache);
 			if (currentTags) {
@@ -330,6 +332,19 @@ export default class Methods {
 
 	extractLastWord(currentTags: string) {
 		return currentTags.replace(/^.*\/([^\/]+)$/, '$1');
+	}
+
+	getResolvedLinks(filePath: string) {
+		const resolvedLinks = this.app.metadataCache.resolvedLinks[filePath];
+		const resolvedLinkArr = Object.keys(resolvedLinks).length > 0 ? Object.keys(resolvedLinks) : [];
+		const resolvedMDLinkArr = resolvedLinkArr.filter((link) => link.endsWith(".md"));
+		return resolvedMDLinkArr.map(link => {
+			return {
+				relativePath: link,
+				fileName: parse(link).name,
+				link: this.getFilepathURI(link)
+			}
+		})
 	}
 }
 
