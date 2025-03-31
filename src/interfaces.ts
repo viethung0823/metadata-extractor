@@ -14,6 +14,10 @@ export interface BridgeSettings {
 	canvasPath: string;
 }
 
+export interface extendedBacklinks extends backlinks {
+	uriGetResolvedLinkOfSelected: string; // uri to trigger getResolvedLinksOfSelectedFile => method from MoreData plugin
+}
+
 /**
  * the metadata that will be written to disk as an array of {@link Metadata}
  */

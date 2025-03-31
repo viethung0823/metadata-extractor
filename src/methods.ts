@@ -342,9 +342,16 @@ export default class Methods {
 			return {
 				relativePath: link,
 				fileName: parse(link).name,
-				link: this.getFilepathURI(link)
+				link: this.getFilepathURI(link),
+				uriGetResolvedLinkOfSelected: this.getResolvedLinksOfSelectedURI(link)
 			}
 		})
+	}
+
+	getResolvedLinksOfSelectedURI(filePath: string): string {
+		const encodedFilePath = encodeURIComponent(filePath);
+		const commandid = "more-data:get_resolved_links_of_selected_file";
+		return `obsidian://adv-uri?vault=${encodeURIComponent("Vault")}&selectedFilepath=${encodedFilePath}&commandid=${commandid}`;
 	}
 }
 
