@@ -270,7 +270,6 @@ export default class Methods {
 			metaObj.relativePath = relativeFilePath;
 			metaObj.uri = this.getFilepathURI(relativeFilePath);
 			metaObj.resolvedLinks = this.getResolvedLinks(relativeFilePath)
-			metaObj.uriUpdateActiveLogs = this.getObsidianURI(relativeFilePath, "more-data:update_active_logs_of_selected_file");
 			const currentTags = this.getUniqueTags(currentCache);
 			if (currentTags) {
 				if (currentTags.length > 0) {

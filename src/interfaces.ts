@@ -33,7 +33,6 @@ export interface Metadata {
 	frontmatter?: extendedFrontMatterCache;
 	uri: string;
 	resolvedLinks?: backlinks[]
-	uriUpdateActiveLogs: string;
 }
 
 /**
