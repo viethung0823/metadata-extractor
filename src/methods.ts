@@ -276,7 +276,7 @@ export default class Methods {
 				if (currentTags.length > 0) {
 					// metaObj.tags = currentTags;
 					metaObj.stringTags = currentTags
-						.map((tag) => this.extractLastWord(tag))
+						.map((tag) => this.removeFirstWord(tag))
 						.join(' ');
 				}
 			}
@@ -332,6 +332,10 @@ export default class Methods {
 
 	extractLastWord(currentTags: string) {
 		return currentTags.replace(/^.*\/([^\/]+)$/, '$1');
+	}
+
+	removeFirstWord(currentTags: string): string {
+    return currentTags.replace(/^[^\/]+\/(.*)$/, '$1');
 	}
 
 	getResolvedLinks(filePath: string) {
