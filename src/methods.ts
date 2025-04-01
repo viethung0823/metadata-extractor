@@ -270,7 +270,7 @@ export default class Methods {
 			metaObj.relativePath = relativeFilePath;
 			metaObj.uri = this.getFilepathURI(relativeFilePath);
 			metaObj.resolvedLinks = this.getResolvedLinks(relativeFilePath)
-
+			metaObj.uriUpdateActiveLogs = this.getObsidianURI(relativeFilePath, "more-data:update_active_logs_of_selected_file");
 			const currentTags = this.getUniqueTags(currentCache);
 			if (currentTags) {
 				if (currentTags.length > 0) {
@@ -347,15 +347,14 @@ export default class Methods {
 				relativePath: link,
 				fileName: parse(link).name,
 				link: this.getFilepathURI(link),
-				uriGetResolvedLinkOfSelected: this.getResolvedLinksOfSelectedURI(link)
+				uriGetResolvedLinkOfSelected: this.getObsidianURI(link, "more-data:get_resolved_links_of_selected_file"),
 			}
 		})
 	}
 
-	getResolvedLinksOfSelectedURI(filePath: string): string {
-		const encodedFilePath = encodeURIComponent(filePath);
-		const commandid = "more-data:get_resolved_links_of_selected_file";
-		return `obsidian://adv-uri?vault=${encodeURIComponent("Vault")}&selectedFilepath=${encodedFilePath}&commandid=${commandid}`;
+		getObsidianURI(filePath: string, commandid: string): string {
+			const encodedFilePath = encodeURIComponent(filePath);
+			return `obsidian://adv-uri?vault=${encodeURIComponent("Vault")}&selectedFilepath=${encodedFilePath}&commandid=${commandid}`;
 	}
 }
 
