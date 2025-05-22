@@ -202,7 +202,7 @@ export default class Methods {
 	createCleanFrontmatter(
 		frontmatter: FrontMatterCache,
 		displayName: string,
-		relativeFilePath?: string
+		relativeFilePath: string
 	): extendedFrontMatterCache {
 		const homeDir = process.env.HOME || (process.env.USERPROFILE as string);
 		const newFrontmatter = { ...frontmatter };
@@ -217,29 +217,24 @@ export default class Methods {
 				displayName,
 				homeDir
 			);
-		} else if (relativeFilePath) {
-			// Check parent folder markdown files for image field
+		} else {
 			const pathParts = relativeFilePath.split('/');
 			pathParts.pop(); // Remove the current file
 
-			// Check each parent folder for a markdown file with the same name
-			for (let i = pathParts.length; i > 0; i--) {
-				const parentPath = pathParts.slice(0, i).join('/');
-				const parentFolderName = pathParts[i - 1];
-				const parentMdPath = `${parentPath}/${parentFolderName}.md`;
+			const parentPath = pathParts.join('/');
+			const parentFolderName = pathParts[pathParts.length - 1];
+			const parentMdPath = `${parentPath}/${parentFolderName}.md`;
 
-				const parentFile = this.app.vault.getFileByPath(parentMdPath);
-				if (parentFile instanceof TFile) {
-					const parentCache = this.app.metadataCache.getFileCache(parentFile);
-					if (parentCache?.frontmatter?.image || parentCache?.frontmatter?.youtubeChannelThumbnail) {
-						const parentImageField = parentCache.frontmatter.image || parentCache.frontmatter.youtubeChannelThumbnail;
-						newFrontmatter.image = this.processImageField(
-							parentImageField,
-							displayName,
-							homeDir
-						);
-						break;
-					}
+			const parentFile = this.app.vault.getFileByPath(parentMdPath);
+			if (parentFile instanceof TFile) {
+				const parentCache = this.app.metadataCache.getFileCache(parentFile);
+				if (parentCache?.frontmatter?.image || parentCache?.frontmatter?.youtubeChannelThumbnail) {
+					const parentImageField = parentCache.frontmatter.image || parentCache.frontmatter.youtubeChannelThumbnail;
+					newFrontmatter.image = this.processImageField(
+						parentImageField,
+						parentFolderName,
+						homeDir
+					);
 				}
 			}
 		}
