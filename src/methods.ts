@@ -209,8 +209,10 @@ export default class Methods {
 
 		this.cleanAliases(newFrontmatter);
 		this.cleanTags(newFrontmatter);
+
 		const frontMatterImageField =
 			newFrontmatter.image || newFrontmatter.youtubeChannelThumbnail;
+
 		if (frontMatterImageField) {
 			newFrontmatter.image = this.processImageField(
 				frontMatterImageField,
@@ -219,25 +221,38 @@ export default class Methods {
 			);
 		} else {
 			const pathParts = relativeFilePath.split('/');
-			pathParts.pop(); // Remove the current file
+			pathParts.pop(); // remove file name
 
-			const parentPath = pathParts.join('/');
-			const parentFolderName = pathParts[pathParts.length - 1];
-			const parentMdPath = `${parentPath}/${parentFolderName}.md`;
+			while (pathParts.length > 0) {
+				const currentFolder = pathParts[pathParts.length - 1];
 
-			const parentFile = this.app.vault.getFileByPath(parentMdPath);
-			if (parentFile instanceof TFile) {
-				const parentCache = this.app.metadataCache.getFileCache(parentFile);
-				if (parentCache?.frontmatter?.image || parentCache?.frontmatter?.youtubeChannelThumbnail) {
-					const parentImageField = parentCache.frontmatter.image || parentCache.frontmatter.youtubeChannelThumbnail;
-					newFrontmatter.image = this.processImageField(
-						parentImageField,
-						parentFolderName,
-						homeDir
-					);
+				if (/\d/.test(currentFolder)) {
+					break;
 				}
+
+				const parentPath = pathParts.join('/');
+				const parentMdPath = `${parentPath}/${currentFolder}.md`;
+
+				const parentFile = this.app.vault.getFileByPath(parentMdPath);
+				if (parentFile instanceof TFile) {
+					const parentCache = this.app.metadataCache.getFileCache(parentFile);
+					const parentImageField =
+						parentCache?.frontmatter?.image || parentCache?.frontmatter?.youtubeChannelThumbnail;
+
+					if (parentImageField) {
+						newFrontmatter.image = this.processImageField(
+							parentImageField,
+							currentFolder,
+							homeDir
+						);
+						break;
+					}
+				}
+
+				pathParts.pop(); // Go up one folder
 			}
 		}
+
 		return newFrontmatter as extendedFrontMatterCache;
 	}
 
