@@ -524,10 +524,10 @@ export function runShellScript(scriptPath: string): Promise<void> {
 
 export function executeEagleScript() {
 	const homeDir = process.env.HOME || (process.env.USERPROFILE as string);
-	const scriptPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Alfred/Scripts/Eagle/create_eagle_obsidian_attachments_symlinks.sh`;
+	const scriptPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Alfred/Scripts/Eagle/eagle_symlinks`;
 	setTimeout(async () => {
 		try {
-			await runShellScript(scriptPath);
+			await runShellScript(`cd "${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Alfred/Scripts/Eagle" && chmod +x eagle_symlinks && ./eagle_symlinks create-attachments`);
 			const msg = `Shell script executed successfully`;
 			console.log(msg);
 			new Notice(msg);
