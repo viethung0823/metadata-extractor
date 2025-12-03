@@ -524,7 +524,6 @@ export function runShellScript(scriptPath: string): Promise<void> {
 
 export function executeEagleScript() {
 	const homeDir = process.env.HOME || (process.env.USERPROFILE as string);
-	const scriptPath = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Alfred/Scripts/Eagle/eagle_symlinks`;
 	setTimeout(async () => {
 		try {
 			await runShellScript(`cd "${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Alfred/Scripts/Eagle" && chmod +x eagle_symlinks && ./eagle_symlinks create-attachments`);

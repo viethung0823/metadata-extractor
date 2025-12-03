@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "cross-env BUILD=dev node esbuild.mjs",
 		"build": "cross-env BUILD=production node esbuild.mjs",
+		"postbuild": "cp -R build/* $HOME/Library/Mobile\\ Documents/iCloud~md~obsidian/Documents/Vault/.obsidian/plugins/metadata-extractor-mine/",
 		"release": "standard-version",
 		"test": "jest",
 		"format": "npx prettier --write src/"

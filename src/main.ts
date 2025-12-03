@@ -45,6 +45,15 @@ export default class BridgePlugin extends Plugin {
 				executeEagleScript();
 			}
 		});
+		this.addCommand({
+			id: 'update_prompt',
+			name: 'Update Prompt',
+			callback:  () => {
+				const resourcesPattern = /^Modules\/00 Tech\/00\.00 Resource\/Ai\/Prompt.*/;
+				this.methods.writeCacheToJSON(resourcesPattern, "prompt.json");
+				executeEagleScript();
+			}
+		});
 	}
 
 	onunload() {
