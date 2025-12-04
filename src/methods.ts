@@ -261,7 +261,21 @@ export default class Methods {
 		const path = `${homeDir}/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/json/Obsidian/${fileName}`;
 		let metadataCache: Metadata[] = [];
 
-		for (const tfile of this.app.vault.getMarkdownFiles()) {
+		// For prompt.json we also want non-md files (e.g. .mdc, .cursorrules)
+		const markdownFiles = this.app.vault.getMarkdownFiles();
+		const allFiles = this.app.vault.getAllLoadedFiles();
+		const targetFiles: TFile[] =
+			fileName === 'prompt.json'
+				? allFiles.filter(
+						(f): f is TFile =>
+							f instanceof TFile &&
+							['md', 'mdc', 'cursorrules'].includes(f.extension)
+				  )
+				: markdownFiles;
+
+
+		console.log("targetFiles", targetFiles)
+		for (const tfile of targetFiles) {
 			const displayName = tfile.basename;
 			const relativeFilePath: string = tfile.path;
 			if (pattern.test(relativeFilePath)) {
@@ -298,10 +312,13 @@ export default class Methods {
 				continue;
 			}
 
-			// For update_prompt case, only process files with tag "tech/it/ai/prompts/active"
-			if (fileName === "prompt.json") {
+			// For update_prompt case:
+			// - .md files: only process if they have tag "tech/it/ai/prompts/active"
+			// - .mdc and .cursorrules: always include (no tag requirement)
+			if (fileName === 'prompt.json' && tfile.extension === 'md') {
 				const currentTags = this.getUniqueTags(currentCache);
-				const hasActivePromptTag = currentTags?.includes("tech/it/ai/prompts/active");
+				const hasActivePromptTag =
+					currentTags?.includes('tech/it/ai/prompts/active');
 				if (!hasActivePromptTag) {
 					continue;
 				}
@@ -342,6 +359,17 @@ export default class Methods {
 						metaObj.aliases = currentAliases;
 					}
 				}
+			}
+
+			// For prompt.json non-md files (.mdc, .cursorrules), ensure a fixed frontmatter.image
+			if (
+				fileName === 'prompt.json' &&
+				(tfile.extension === 'mdc' || tfile.extension === 'cursorrules')
+			) {
+				const existingFrontmatter: any = metaObj.frontmatter ?? {};
+				existingFrontmatter.image =
+					'Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/Cursor.png';
+				metaObj.frontmatter = existingFrontmatter;
 			}
 
 			if (Object.keys(metaObj).length > 0) {
@@ -386,7 +414,11 @@ export default class Methods {
 
 	getResolvedLinks(filePath: string) {
 		const resolvedLinks = this.app.metadataCache.resolvedLinks[filePath];
-		const resolvedLinkArr = Object.keys(resolvedLinks).length > 0 ? Object.keys(resolvedLinks) : [];
+		if (!resolvedLinks) {
+			return [];
+		}
+		const resolvedLinkArr =
+			Object.keys(resolvedLinks).length > 0 ? Object.keys(resolvedLinks) : [];
 		const resolvedMDLinkArr = resolvedLinkArr.filter((link) => link.endsWith(".md"));
 		return resolvedMDLinkArr.map(link => {
 			return {
