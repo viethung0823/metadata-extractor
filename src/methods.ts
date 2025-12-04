@@ -297,6 +297,16 @@ export default class Methods {
 				console.log(`No cache for file: ${tfile.path}`);
 				continue;
 			}
+
+			// For update_prompt case, only process files with tag "tech/it/ai/prompts/active"
+			if (fileName === "prompt.json") {
+				const currentTags = this.getUniqueTags(currentCache);
+				const hasActivePromptTag = currentTags?.includes("tech/it/ai/prompts/active");
+				if (!hasActivePromptTag) {
+					continue;
+				}
+			}
+
 			let currentAliases: string[];
 
 			//@ts-expect-error, object needs to be initialized, but values will only be known later
