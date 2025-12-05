@@ -313,14 +313,18 @@ export default class Methods {
 			}
 
 			// For update_prompt case:
-			// - .md files: only process if they have tag "tech/it/ai/prompts/active"
-			// - .mdc and .cursorrules: always include (no tag requirement)
-			if (fileName === 'prompt.json' && tfile.extension === 'md') {
-				const currentTags = this.getUniqueTags(currentCache);
-				const hasActivePromptTag =
-					currentTags?.includes('tech/it/ai/prompts/active');
-				if (!hasActivePromptTag) {
-					continue;
+			// - Files in Modules/00 Tech/00.00 Resource/Ai/Prompt/Coding: no tag requirement (all file types)
+			// - Other .md files: only process if they have tag "tech/it/ai/prompts/active"
+			// - Other .mdc and .cursorrules: always include (no tag requirement)
+			if (fileName === 'prompt.json') {
+				const isInCodingDir = relativeFilePath.startsWith('Modules/00 Tech/00.00 Resource/Ai/Prompt/Coding');
+				if (!isInCodingDir && tfile.extension === 'md') {
+					const currentTags = this.getUniqueTags(currentCache);
+					const hasActivePromptTag =
+						currentTags?.includes('tech/it/ai/prompts/active');
+					if (!hasActivePromptTag) {
+						continue;
+					}
 				}
 			}
 
@@ -361,15 +365,37 @@ export default class Methods {
 				}
 			}
 
-			// For prompt.json non-md files (.mdc, .cursorrules), ensure a fixed frontmatter.image
-			if (
-				fileName === 'prompt.json' &&
-				(tfile.extension === 'mdc' || tfile.extension === 'cursorrules')
-			) {
-				const existingFrontmatter: any = metaObj.frontmatter ?? {};
-				existingFrontmatter.image =
-					'Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/Cursor.png';
-				metaObj.frontmatter = existingFrontmatter;
+			// For prompt.json files in Coding directory, dynamically assign image based on folder or filename
+			// Pattern: dot_<name> -> <Name>.png (e.g., dot_cursor -> Cursor.png, dot_github -> Github.png)
+			// Checks both direct files (dot_cursor.md) and files within dot_ folders (dot_cursor/rules/mobile-rule.mdc)
+			if (fileName === 'prompt.json') {
+				const isInCodingDir = relativeFilePath.startsWith('Modules/00 Tech/00.00 Resource/Ai/Prompt/Coding');
+				if (isInCodingDir) {
+					// Extract the path after the Coding directory
+					const pathAfterCoding = relativeFilePath.replace('Modules/00 Tech/00.00 Resource/Ai/Prompt/Coding/', '');
+					const pathParts = pathAfterCoding.split('/');
+
+					// Check if the first part (folder or filename) starts with dot_
+					const firstPart = pathParts[0];
+					let dotName = '';
+
+					// If it's a file directly named dot_something
+					if (displayName.startsWith('dot_')) {
+						dotName = displayName.replace(/^dot_/, '');
+					}
+					// If it's in a folder named dot_something
+					else if (firstPart.startsWith('dot_')) {
+						dotName = firstPart.replace(/^dot_/, '');
+					}
+
+					if (dotName) {
+						const imageName = dotName.charAt(0).toUpperCase() + dotName.slice(1);
+						const existingFrontmatter: any = metaObj.frontmatter ?? {};
+						existingFrontmatter.image =
+							`Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Data/Apps/Eagle/ObsidianAttachments.library/Symlink/${imageName}.png`;
+						metaObj.frontmatter = existingFrontmatter;
+					}
+				}
 			}
 
 			if (Object.keys(metaObj).length > 0) {
