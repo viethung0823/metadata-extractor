@@ -269,7 +269,7 @@ export default class Methods {
 				? allFiles.filter(
 						(f): f is TFile =>
 							f instanceof TFile &&
-							['md', 'mdc', 'cursorrules'].includes(f.extension)
+							['md', 'mdc', 'cursorrules', 'json'].includes(f.extension)
 				  )
 				: markdownFiles;
 
